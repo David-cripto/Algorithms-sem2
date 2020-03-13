@@ -1,0 +1,432 @@
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <algorithm>
+
+using std::cin;
+using std::cout;
+using std::vector;
+using std::stack;
+using std::min;
+
+class Graph {
+private:
+	class Gr_el {
+	public:
+		int time_in;
+		int time_out;
+		int time_fup;
+		int color;
+		int number;
+		int parent;
+		int cur;
+		int cur1;
+		bool us;
+		Gr_el(int number) {
+			this->number = number;
+			cur1 = 0;
+		}
+	};
+	int time;
+	vector<Gr_el*> ver;
+	vector<vector<Gr_el*>> peaks;
+	vector<vector<Gr_el*>> peaks_ed;
+	class Segment {
+	public:
+		vector<Gr_el*> v;
+		vector<int> ind;
+		int coun_ed;
+		Segment() {
+			coun_ed = 0;
+		}
+	};
+	bool tr;
+	vector<Segment> segments;
+	vector<Gr_el*> cycle;
+	stack <Gr_el*> cyc;
+	vector<vector<Gr_el*>> edge;
+	vector<Gr_el*> dur;
+	void DFS_vis(Gr_el& u);
+	void DFS_vis_seg(Gr_el& u, int& coup);
+	void DFS_vis_br(Gr_el& u, Gr_el& p);
+	void check(Gr_el& u);
+	void Br(Gr_el& u, Gr_el& p);
+public:
+	Graph(int n);
+	~Graph();
+	void set_ver(int in, int to);
+	void set_ver_ed(int in, int to);
+	void DFS();
+	void DFS_seg();
+	void F_Br();
+	void Gamma_set();
+	void Gamma();
+	bool get_tr() {
+		return tr;
+	}
+};
+
+int main() {
+	int n, m;
+	cin >> n >> m;
+	Graph gr(n);
+	for (int i = 0; i < m; ++i) {
+		int f_v, s_v;
+		cin >> f_v >> s_v;
+		gr.set_ver(f_v, s_v);
+	}
+	gr.DFS();
+	gr.F_Br();
+	gr.Gamma_set();
+	gr.Gamma();
+	gr.get_tr() ? cout << "YES" : cout << "NO";
+	return 0;
+}
+
+Graph::Graph(int n) {
+	for (int i = 0; i < n; ++i) {
+		Gr_el* temp = new Gr_el(i);
+		ver.push_back(temp);
+		vector<Gr_el*> temp1;
+		peaks.push_back(temp1);
+		peaks_ed.push_back(temp1);
+	}
+	tr = true;
+}
+
+Graph::~Graph() {
+	for (int i = 0; i < ver.size(); ++i)
+		delete ver[i];
+}
+
+void Graph::set_ver(int in, int to) {
+	peaks[in].push_back(ver[to]);
+	peaks[to].push_back(ver[in]);
+}
+
+void Graph::set_ver_ed(int in, int to) {
+	peaks_ed[in].push_back(ver[to]);
+	peaks_ed[to].push_back(ver[in]);
+}
+
+void Graph::DFS() {
+	cycle.clear();
+	for (int i = 0; i < cyc.size(); ++i) {
+		cyc.pop();
+	}
+	for (int i = 0; i < ver.size(); ++i) {
+		ver[i]->color = 0;
+		ver[i]->parent = -1;
+	}
+	time = 0;
+	for (int i = 0; i < ver.size(); ++i) {
+		if (ver[i]->color == 0)
+			DFS_vis(*ver[i]);
+	}
+}
+
+void Graph::DFS_seg(){
+	segments.clear();
+	for (int i = 0; i < cyc.size(); ++i) {
+		cyc.pop();
+	}
+	for (int i = 0; i < ver.size(); ++i) {
+		ver[i]->color = 0;
+		ver[i]->parent = -1;
+		ver[i]->cur1 = 0;
+	}
+	time = 0;
+	for (int i = 0; i < dur.size(); ++i) {
+		int coup = 1;
+		DFS_vis_seg(*dur[i], coup);
+		Segment temp;
+		while (!cyc.empty()){
+			temp.v.push_back(cyc.top());
+			cyc.pop();
+		}
+		if (temp.v.size() > 1) {
+			segments.push_back(temp);
+		}
+		check(*dur[i]);
+	}
+}
+
+void Graph::F_Br(){
+	time = 0;
+	for (int i = 0; i < ver.size(); ++i) {
+		ver[i]->us = false;
+	}
+	for (int i = 0; i < ver.size(); ++i) {
+		if (!ver[i]->us) {
+			Gr_el temp(-2);
+			DFS_vis_br(*ver[i], temp);
+		}
+	}
+}
+
+void Graph::Gamma_set(){
+	if (cycle.size() == 0) {
+		return;
+	}
+	vector<Gr_el*> temp;
+	for (int i = 0; i < cycle.size() && cycle[i] != nullptr; ++i) {
+		cycle[i]->cur = 1;
+		temp.push_back(cycle[i]);
+	}
+	edge.push_back(temp);
+	edge.push_back(temp);
+	for (int i = 0; i < cycle.size() && cycle[i] != nullptr; ++i) {
+		dur.push_back(cycle[i]);
+	}
+	for (int i = 0; i < dur.size() - 1; ++i) {
+		set_ver_ed(dur[i]->number, dur[i + 1]->number);
+	}
+	set_ver_ed(dur[dur.size() - 2]->number, dur[dur.size() - 1]->number);
+	set_ver_ed(dur[0]->number, dur[dur.size() - 1]->number);
+}
+
+void Graph::Gamma(){
+	DFS_seg();
+	for (int i = 0; i < segments.size(); ++i) {
+		segments[i].coun_ed = 0;
+	}
+	for (int i = 0; i < segments.size(); ++i) {
+		for (int j = 0; j < edge.size(); ++j) {
+			for (int k = 0; k < edge[j].size(); ++k) {
+				if (segments[i].v[0]->number == edge[j][k]->number) {
+					for (int l = 0; l < edge[j].size(); ++l) {
+						if (segments[i].v[segments[i].v.size() - 1]->number == edge[j][l]->number) {
+							segments[i].coun_ed += 1;
+							segments[i].ind.push_back(j);
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	int min = 0;
+	for (int i = 0; i < segments.size(); ++i) {
+		for (int j = 0; j < segments[i].v.size(); ++j) {
+			if (segments[i].coun_ed < segments[min].coun_ed) {
+				min = i;
+			}
+		}
+	}
+	if (segments.size() == 0) {
+		return;
+	}
+	if (segments[min].coun_ed == 0) {
+		tr = false;
+		return;
+	}
+	for (int i = 1; i < segments[min].v.size() - 1; ++i) {
+		segments[min].v[i]->cur = 1;
+		dur.push_back(segments[min].v[i]);
+	}
+	int z = 0;
+	for (int i = 1; i < segments[min].v.size(); ++i) {
+		set_ver_ed(segments[min].v[z++]->number, segments[min].v[i]->number);
+	}
+	int j = 0;
+	Gr_el* u = edge[segments[min].ind[0]][j];
+	while (u->number != segments[min].v[0]->number){
+		u = edge[segments[min].ind[0]][++j];
+	}
+	int k = 0;
+	Gr_el* p = edge[segments[min].ind[0]][k];
+	while (p->number != segments[min].v[segments[min].v.size() - 1]->number) {
+		p = edge[segments[min].ind[0]][++k];
+	}
+	vector<Gr_el*> temp;
+	vector<Gr_el*> temp1;
+	if (j < k) {
+		int temp_j = j;
+		Gr_el* l = edge[segments[min].ind[0]][temp_j];
+		temp_j++;
+		while (l->number != segments[min].v[segments[min].v.size() - 1]->number) {
+			temp.push_back(l);
+			l = edge[segments[min].ind[0]][temp_j++];
+		}
+		temp.push_back(l);
+		int temp_k = k;
+		Gr_el* m = edge[segments[min].ind[0]][temp_k];
+		while (temp_k != j){
+			temp_k++;
+			if (temp_k == edge[segments[min].ind[0]].size()) {
+				temp_k = 0;
+			}
+			temp1.push_back(m);
+			m = edge[segments[min].ind[0]][temp_k];
+		}
+		temp1.push_back(m);
+	}
+	else {
+		int temp_k = k;
+		Gr_el* l = edge[segments[min].ind[0]][temp_k];
+		temp_k++;
+		while (l->number != segments[min].v[0]->number) {
+			temp.push_back(l);
+			l = edge[segments[min].ind[0]][temp_k++];
+		}
+		temp.push_back(l);
+		if (temp_k == edge[segments[min].ind[0]].size()) {
+			temp_k = 0;
+		}
+		l = edge[segments[min].ind[0]][temp_k++];
+		if (temp_k == edge[segments[min].ind[0]].size()) {
+			temp_k = 0;
+		}
+		if (temp.size() == 1) {
+			while (edge[segments[min].ind[0]][temp_k]->number != temp[0]->number) {
+				if (temp_k == edge[segments[min].ind[0]].size()) {
+					temp_k = 0;
+				}
+				temp.push_back(l);
+				l = edge[segments[min].ind[0]][temp_k];
+				temp_k++;
+				if (temp_k == edge[segments[min].ind[0]].size()) {
+					temp_k = 0;
+				}
+			}
+			temp.push_back(l);
+		}
+		int temp_j = j;
+		Gr_el* m = edge[segments[min].ind[0]][temp_j];
+		while (temp_j != k) {
+			temp_j++;
+			if (temp_j == edge[segments[min].ind[0]].size()) {
+				temp_j = 0;
+			}
+			temp1.push_back(m);
+			m = edge[segments[min].ind[0]][temp_j];
+		}
+		temp1.push_back(m);
+	}
+	for (int i = 1; i < segments[min].v.size() - 1; ++i) {
+		temp.push_back(segments[min].v[i]);
+		temp1.push_back(segments[min].v[i]);
+	}
+	vector<vector<Gr_el*>> temp2;
+	for (int i = edge.size() - 1; i != segments[min].ind[0]; --i) {
+		temp2.push_back(edge[edge.size() - 1]);
+		edge.pop_back();
+	}
+	edge.pop_back();
+	for (int i = 0; i < temp2.size(); ++i) {
+		edge.push_back(temp2[i]);
+	}
+	edge.push_back(temp);
+	edge.push_back(temp1);
+	Gamma();
+}
+
+void Graph::DFS_vis(Gr_el& u) {
+	cyc.push(&u);
+	u.time_in = time++;
+	u.color = 1;
+	for (int i = 0; i < peaks[u.number].size(); ++i) {
+		if (peaks[u.number][i]->color == 0) {
+			peaks[u.number][i]->parent = u.number;
+			DFS_vis(*peaks[u.number][i]);
+		}
+		else if (u.parent != peaks[u.number][i]->number && !cyc.empty()) {
+			while (!cyc.empty()){
+				cycle.push_back(cyc.top());
+				cyc.pop();
+			}
+			cycle.push_back(nullptr);
+		}
+	}
+	u.color = 2;
+	u.time_out = time++;
+}
+
+void Graph::DFS_vis_seg(Gr_el& u, int& coup) {
+	cyc.push(&u);
+	if (u.cur == 1 && coup != 1) {
+		return;
+	}
+	u.time_in = time++;
+	u.color = 1;
+	for (int i = 0; i < peaks[u.number].size(); ++i) {
+		if (peaks[u.number][i]->color == 0 && peaks[u.number][i]->cur != 1) {
+			peaks[u.number][i]->parent = u.number;
+			coup++;
+			DFS_vis_seg(*peaks[u.number][i], coup);
+		}
+	}
+	u.color = 2;
+	u.time_out = time++;
+}
+
+void Graph::DFS_vis_br(Gr_el& u, Gr_el& p){
+	u.us = true;
+	u.time_in = u.time_fup = time++;
+	for (int i = 0; i < peaks[u.number].size(); ++i) {
+		Gr_el* temp = peaks[u.number][i];
+		if (temp->number == p.number) {
+			continue;
+		}
+		if (temp->us) {
+			u.time_fup = min(u.time_fup, temp->time_in);
+		}
+		else {
+			DFS_vis_br(*temp, u);
+			u.time_fup = min(u.time_fup, temp->time_fup);
+			if (temp->time_fup > u.time_in) {
+				Br(u, *temp);
+				i = 0;
+			}
+		}
+	}
+}
+
+void Graph::check(Gr_el& u){
+	u.cur1 = 1;
+	for (int i = 0; i < peaks[u.number].size(); ++i) {
+		if (peaks[u.number][i]->cur == 1 && peaks[u.number][i]->cur1 == 0) {
+			bool have = false;
+			for (int j = 0; j < peaks_ed[u.number].size(); ++j) {
+				if (peaks_ed[u.number][j]->number == peaks[u.number][i]->number) {
+					have = true;
+				}
+			}
+			if (!have) {
+				Segment temp;
+				temp.v.push_back(&u);
+				temp.v.push_back(peaks[u.number][i]);
+				segments.push_back(temp);
+			}
+		}
+	}
+}
+
+void Graph::Br(Gr_el& u, Gr_el& p){
+	vector<Gr_el*> temp;
+	int i = 0;
+	while (peaks[u.number][i]->number != p.number){
+		i++;
+	}
+	for (int temp_i = peaks[u.number].size() - 1; temp_i > i; --temp_i) {
+		temp.push_back(peaks[u.number][temp_i]);
+		peaks[u.number].pop_back();
+	}
+	peaks[u.number].pop_back();
+	for (int j = 0; j < temp.size(); ++j) {
+		peaks[u.number].push_back(temp[j]);
+	}
+	vector<Gr_el*> temp1;
+	int j = 0;
+	while (peaks[p.number][j]->number != u.number) {
+		j++;
+	}
+	for (int temp_j = peaks[p.number].size() - 1; temp_j > j; --temp_j) {
+		temp1.push_back(peaks[p.number][temp_j]);
+		peaks[p.number].pop_back();
+	}
+	peaks[p.number].pop_back();
+	for (int k = 0; k < temp1.size(); ++k) {
+		peaks[p.number].push_back(temp1[k]);
+	}
+}
