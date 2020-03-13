@@ -139,14 +139,6 @@ void Graph::DFS_seg(){
 	for (int i = 0; i < dur.size(); ++i) {
 		int coup = 1;
 		DFS_vis_seg(*dur[i], coup);
-		Segment temp;
-		while (!cyc.empty()){
-			temp.v.push_back(cyc.top());
-			cyc.pop();
-		}
-		if (temp.v.size() > 1) {
-			segments.push_back(temp);
-		}
 		check(*dur[i]);
 	}
 }
@@ -344,17 +336,32 @@ void Graph::DFS_vis(Gr_el& u) {
 
 void Graph::DFS_vis_seg(Gr_el& u, int& coup) {
 	cyc.push(&u);
+	u.color = 1;
+	u.time_in = time++;
 	if (u.cur == 1 && coup != 1) {
 		return;
 	}
-	u.time_in = time++;
-	u.color = 1;
 	for (int i = 0; i < peaks[u.number].size(); ++i) {
-		if (peaks[u.number][i]->color == 0 && peaks[u.number][i]->cur != 1) {
+		if (peaks[u.number][i]->cur != 1 && u.parent != peaks[u.number][i]->number) {
 			peaks[u.number][i]->parent = u.number;
 			coup++;
 			DFS_vis_seg(*peaks[u.number][i], coup);
+			break;
 		}
+		else if (coup != 1 && peaks[u.number][i]->cur == 1 && u.parent != peaks[u.number][i]->number) {
+			peaks[u.number][i]->parent = u.number;
+			coup++;
+			DFS_vis_seg(*peaks[u.number][i], coup);
+			break;
+		}
+	}
+	Segment temp;
+	while (!cyc.empty()) {
+		temp.v.push_back(cyc.top());
+		cyc.pop();
+	}
+	if (temp.v.size() > 1) {
+		segments.push_back(temp);
 	}
 	u.color = 2;
 	u.time_out = time++;
