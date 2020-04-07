@@ -5,41 +5,39 @@ using std::cin;
 using std::cout;
 using std::vector;
 
+class Vertex {
+public:
+	int time_in;
+	int time_out;
+	int color;
+	int number;
+	int parent;
+	int indeg;
+	int outdeg;
+	Vertex(int number) {
+		this->number = number;
+	}
+};
+
 class Graph {
 private:
-	class Gr_el {
-	public:
-		int time_in;
-		int time_out;
-		int color;
-		int number;
-		int parent;
-		int indeg;
-		int outdeg;
-		Gr_el(int number) {
-			this->number = number;
-		}
-	};
 	int time;
-	vector<vector<Gr_el*>> conn;
-	vector<Gr_el*> ver;
-	vector<Gr_el*> ver_cond;
-	vector<Gr_el*> sort_ver;
-	vector<vector<Gr_el*>> peaks;
-	vector<vector<Gr_el*>> peaks_cond;
-	vector<vector<Gr_el*>> inv_peaks;
-	void DFS_vis(Gr_el& u, vector<vector<Gr_el*>>& p);
-	void DFS_vis1(Gr_el& u, vector<vector<Gr_el*>>& p, vector<Gr_el*>& temp);
-	void con_check(Gr_el& u, vector<Gr_el*>& temp);
-	void set_peaks_cond(int in, int to);
+	vector<vector<Vertex*>> conn;
+	vector<Vertex*> ver;
+	vector<Vertex*> ver_cond;
+	vector<Vertex*> sort_ver;
+	vector<vector<Vertex*>> peaks;
+	vector<vector<Vertex*>> peaks_cond;
+	vector<vector<Vertex*>> inv_peaks;
 public:
 	Graph(int n);
 	~Graph();
-	void set_ver(int in, int to);
-	void DFS_inv();
-	void DFS();
-	void con();
-	void cond();
+	friend void set_ver(Graph& gr, int in, int to);
+	friend void DFS_inv(Graph& gr);
+	friend void DFS(Graph& gr);
+	friend void cond(Graph& gr);
+	friend void DFS_vis(Graph& gr, Vertex& u, vector<vector<Vertex*>>& p, bool invar, vector<Vertex*>& temp);
+	friend void set_peaks_cond(Graph& gr, int in, int to);
 };
 
 int main() {
@@ -49,147 +47,139 @@ int main() {
 	for (int i = 0; i < m; ++i) {
 		int f_v, s_v;
 		cin >> f_v >> s_v;
-		gr.set_ver(f_v, s_v);
+		set_ver(gr, f_v, s_v);
 	}
-	gr.DFS_inv();
-	gr.DFS();
-	gr.cond();
+	DFS_inv(gr);
+	DFS(gr);
+	cond(gr);
 	return 0;
 }
 
-Graph::Graph(int n){
+Graph::Graph(int n) {
 	for (int i = 0; i < n + 1; ++i) {
-		Gr_el* temp = new Gr_el(i);
+		Vertex* temp = new Vertex(i);
 		ver.push_back(temp);
-		vector<Gr_el*> temp1;
+		vector<Vertex*> temp1;
 		peaks.push_back(temp1);
 		inv_peaks.push_back(temp1);
 	}
 }
 
-Graph::~Graph(){
+Graph::~Graph() {
 	for (int i = 0; i < ver.size(); ++i)
 		delete ver[i];
 	for (int i = 0; i < ver_cond.size(); ++i)
 		delete ver_cond[i];
 }
 
-void Graph::set_ver(int in, int to){
-	peaks[in].push_back(ver[to]);
-	inv_peaks[to].push_back(ver[in]);
+void set_ver(Graph& gr, int in, int to) {
+	gr.peaks[in].push_back(gr.ver[to]);
+	gr.inv_peaks[to].push_back(gr.ver[in]);
 }
 
-void Graph::set_peaks_cond(int in, int to){
-	peaks_cond[in].push_back(ver_cond[to]);
+void set_peaks_cond(Graph& gr, int in, int to) {
+	gr.peaks_cond[in].push_back(gr.ver_cond[to]);
 }
 
-void Graph::DFS_inv(){
-	for (int i = 0; i < ver.size(); ++i) {
-		ver[i]->color = 0;
-		ver[i]->parent = -1;
+void DFS_inv(Graph& gr) {
+	for (int i = 0; i < gr.ver.size(); ++i) {
+		gr.ver[i]->color = 0;
+		gr.ver[i]->parent = -1;
 	}
-	time = 0;
-	for (int i = 0; i < ver.size(); ++i) {
-		if (ver[i]->color == 0)
-			DFS_vis(*ver[i], inv_peaks);
+	gr.time = 0;
+	for (int i = 0; i < gr.ver.size(); ++i) {
+		vector<Vertex*> temp;
+		if (gr.ver[i]->color == 0)
+			DFS_vis(gr, *gr.ver[i], gr.inv_peaks, true, temp);
 	}
 }
 
-void Graph::DFS(){
-	for (int i = 0; i < ver.size(); ++i) {
-		ver[i]->color = 0;
-		ver[i]->parent = -1;
+void DFS(Graph& gr) {
+	for (int i = 0; i < gr.ver.size(); ++i) {
+		gr.ver[i]->color = 0;
+		gr.ver[i]->parent = -1;
 	}
-	time = 0;
-	for (int i = sort_ver.size() - 1; i > 0; --i) {
-		vector<Gr_el*> temp;
-		if (sort_ver[i]->color == 0)
-			DFS_vis1(*sort_ver[i], peaks, temp);
+	gr.time = 0;
+	for (int i = gr.sort_ver.size() - 1; i > 0; --i) {
+		vector<Vertex*> temp;
+		if (gr.sort_ver[i]->color == 0)
+			DFS_vis(gr, *gr.sort_ver[i], gr.peaks, false, temp);
 		if (temp.size() != 0)
-			conn.push_back(temp);
+			gr.conn.push_back(temp);
 	}
 }
 
-void Graph::cond() {
-	if (conn.size() == 1) {
+void cond(Graph& gr) {
+	if (gr.conn.size() == 1) {
 		cout << 0;
 		return;
 	}
 
-	for (int i = 0; i < conn.size(); ++i) {
-		Gr_el* temp = new Gr_el(i);
-		ver_cond.push_back(temp);
+	for (int i = 0; i < gr.conn.size(); ++i) {
+		Vertex* temp = new Vertex(i);
+		gr.ver_cond.push_back(temp);
 	}
 
-	for (int i = 0; i < conn.size(); ++i) {
-		vector<Gr_el*> temp;
-		peaks_cond.push_back(temp);
+	for (int i = 0; i < gr.conn.size(); ++i) {
+		vector<Vertex*> temp;
+		gr.peaks_cond.push_back(temp);
 	}
 
-	for (int i = 0; i < conn.size(); ++i) {
+	for (int i = 0; i < gr.conn.size(); ++i) {
 		int col = i;
-		for (int j = 0; j < conn[i].size(); ++j) {
-			conn[i][j]->color = col;
+		for (int j = 0; j < gr.conn[i].size(); ++j) {
+			gr.conn[i][j]->color = col;
 		}
 	}
 
-	for (int i = 0; i < peaks.size(); ++i) {
-		for (int j = 0; j < peaks[i].size(); ++j) {
-			if (ver[i]->color != peaks[i][j]->color)
-				set_peaks_cond(ver[i]->color, peaks[i][j]->color);
+	for (int i = 0; i < gr.peaks.size(); ++i) {
+		for (int j = 0; j < gr.peaks[i].size(); ++j) {
+			if (gr.ver[i]->color != gr.peaks[i][j]->color)
+				set_peaks_cond(gr, gr.ver[i]->color, gr.peaks[i][j]->color);
 		}
 	}
 
-	for (int i = 0; i < ver_cond.size(); ++i) {
-		ver_cond[i]->indeg = ver_cond[i]->outdeg = 0;
+	for (int i = 0; i < gr.ver_cond.size(); ++i) {
+		gr.ver_cond[i]->indeg = gr.ver_cond[i]->outdeg = 0;
 	}
 
-	for (int i = 0; i < peaks_cond.size(); ++i) {
-		for (int j = 0; j < peaks_cond[i].size(); ++j) {
-			if (ver_cond[i]->number != peaks_cond[i][j]->number) {
-				ver_cond[i]->outdeg++;
-				ver_cond[peaks_cond[i][j]->number]->indeg++;
+	for (int i = 0; i < gr.peaks_cond.size(); ++i) {
+		for (int j = 0; j < gr.peaks_cond[i].size(); ++j) {
+			if (gr.ver_cond[i]->number != gr.peaks_cond[i][j]->number) {
+				gr.ver_cond[i]->outdeg++;
+				gr.ver_cond[gr.peaks_cond[i][j]->number]->indeg++;
 			}
 		}
 	}
 
 	int max_outdeg_zero = 0, max_indeg_zero = 0;
 
-	for (int i = 0; i < ver_cond.size(); ++i) {
-		if (ver_cond[i]->indeg == 0)
+	for (int i = 0; i < gr.ver_cond.size(); ++i) {
+		if (gr.ver_cond[i]->indeg == 0)
 			max_indeg_zero++;
-		if (ver_cond[i]->outdeg == 0)
+		if (gr.ver_cond[i]->outdeg == 0)
 			max_outdeg_zero++;
 	}
 
 	max_indeg_zero > max_outdeg_zero ? cout << max_indeg_zero : cout << max_outdeg_zero;
 }
 
-void Graph::DFS_vis(Gr_el& u, vector<vector<Gr_el*>>& p) {
-	u.time_in = time++;
+void DFS_vis(Graph& gr, Vertex& u, vector<vector<Vertex*>>& p, bool invar, vector<Vertex*>& temp) {
+	u.time_in = gr.time++;
 	u.color = 1;
 	for (int i = 0; i < p[u.number].size(); ++i) {
 		if (p[u.number][i]->color == 0) {
 			p[u.number][i]->parent = u.number;
-			DFS_vis(*p[u.number][i], p);
+			DFS_vis(gr, *p[u.number][i], p, invar, temp);
 		}
 	}
-	Gr_el* temp = &u;
-	sort_ver.push_back(temp);
-	u.color = 2;
-	u.time_out = time++;
-}
-
-void Graph::DFS_vis1(Gr_el& u, vector<vector<Gr_el*>>& p, vector<Gr_el*>& temp){
-	u.time_in = time++;
-	u.color = 1;
-	for (int i = 0; i < p[u.number].size(); ++i) {
-		if (p[u.number][i]->color == 0) {
-			p[u.number][i]->parent = u.number;
-			DFS_vis1(*p[u.number][i], p, temp);
-		}
+	if (invar) {
+		Vertex* temp_ver = &u;
+		gr.sort_ver.push_back(temp_ver);
+	}
+	else{
+		temp.push_back(&u);
 	}
 	u.color = 2;
-	u.time_out = time++;
-	temp.push_back(&u);
+	u.time_out = gr.time++;
 }
