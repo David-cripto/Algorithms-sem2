@@ -1,0 +1,108 @@
+#include <iostream>
+#include <queue>
+#include <vector>
+
+using std::vector;
+using std::queue;
+
+class Vertex {
+public:
+	size_t color;
+	size_t parent;
+	size_t number;
+	size_t dist;
+	Vertex(int number) {
+		this->number = number;
+	}
+};
+
+class Graph {
+private:
+	vector <Vertex*> ver;
+	vector <vector<Vertex*>> peaks;
+public:
+	Graph(size_t n);
+	~Graph() {
+		for (size_t i = 0; i < ver.size(); ++i)
+			delete ver[i];
+	}
+	friend void BFS(Graph gr, size_t s);
+	friend void set_peak(Graph gr, size_t f_p, size_t s_p);
+	friend size_t ans(Graph gr, size_t leo, size_t  matt, size_t milk);
+};
+
+int main() {
+	size_t n, m, leo, matt, milk;
+	std::cin >> n >> m >> leo >> matt >> milk;
+	Graph gr(n);
+	for (size_t i = 0; i < m; ++i) {
+		size_t first_p, second_p;
+		std::cin >> first_p >> second_p;
+		set_peak(gr, first_p, second_p);
+	}
+	std::cout << ans(gr, leo, matt, milk);
+	return 0;
+}
+
+void set_peak(Graph gr, size_t f_p, size_t s_p) {
+	gr.peaks[f_p].push_back(gr.ver[s_p]);
+	gr.peaks[s_p].push_back(gr.ver[f_p]);
+}
+
+size_t ans(Graph gr, size_t leo, size_t matt, size_t milk) {
+	BFS(gr, milk);
+	vector <Vertex> distance_from_milk;
+	for (size_t i = 0; i < gr.ver.size(); ++i) {
+		distance_from_milk.push_back(*gr.ver[i]);
+	}
+	BFS(gr, leo);
+	vector <Vertex> distance_from_leo;
+	for (size_t i = 0; i < gr.ver.size(); ++i) {
+		distance_from_leo.push_back(*gr.ver[i]);
+	}
+	BFS(gr, matt);
+	vector <Vertex> distance_from_matt;
+	for (size_t i = 0; i < gr.ver.size(); ++i) {
+		distance_from_matt.push_back(*gr.ver[i]);
+	}
+	size_t min = distance_from_milk[1].dist + distance_from_leo[1].dist + distance_from_matt[1].dist;
+	for (size_t i = 2; i < gr.ver.size(); ++i) {
+		if (min > distance_from_milk[i].dist + distance_from_leo[i].dist + distance_from_matt[i].dist)
+			min = distance_from_milk[i].dist + distance_from_leo[i].dist + distance_from_matt[i].dist;
+	}
+	return min;
+}
+
+Graph::Graph(size_t n) {
+	for (size_t i = 0; i < n + 1; ++i) {
+		Vertex* temp = new Vertex(i);
+		ver.push_back(temp);
+		vector<Vertex*> temp1;
+		peaks.push_back(temp1);
+	}
+}
+
+void BFS(Graph gr, size_t s) {
+	for (size_t i = 0; i < gr.ver.size(); ++i) {
+		gr.ver[i]->color = 0;
+		gr.ver[i]->dist = -1;
+		gr.ver[i]->parent = -1;
+	}
+	gr.ver[s]->color = 1;
+	gr.ver[s]->dist = 0;
+	queue <Vertex> Q;
+	Q.push(*gr.ver[s]);
+	while (!Q.empty()) {
+		Vertex u = Q.front();
+		Q.pop();
+		for (size_t i = 0; i < gr.peaks[u.number].size(); ++i) {
+			if (gr.peaks[u.number][i]->color == 0) {
+				gr.peaks[u.number][i]->color = 1;
+				gr.peaks[u.number][i]->parent = u.number;
+				gr.peaks[u.number][i]->dist = u.dist + 1;
+				Q.push(*gr.peaks[u.number][i]);
+			}
+		}
+		gr.ver[u.number]->color = 2;
+	}
+}
