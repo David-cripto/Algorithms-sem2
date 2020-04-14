@@ -100,7 +100,7 @@ BigInteger::BigInteger() {
 }
 
 BigInteger::BigInteger(const std::string str) {
-	std::string s = str;
+	std::string temp_str = str;
 	this->sign = 1;
 	//while (!s.empty()) {
 	//	if (s.back() == '-') {
@@ -111,15 +111,15 @@ BigInteger::BigInteger(const std::string str) {
 	//	this->num.push_back(static_cast<int>(s.back()) - 48);
 	//	s.pop_back();
 	//}
-	if (s[0] == '-') {
+	if (temp_str[0] == '-') {
 		this->sign = -1;
-		s.erase(0, 1);
+		temp_str.erase(0, 1);
 	}
-	for (int i = static_cast<int>(s.length()); i > 0; i -= 4) {
+	for (int i = static_cast<int>(temp_str.length()); i > 0; i -= 4) {
 		if (i < 4)
-			this->num.push_back(atoi(s.substr(0, i).c_str()));
+			this->num.push_back(atoi(temp_str.substr(0, i).c_str()));
 		else
-			this->num.push_back(atoi(s.substr(i - 4, 4).c_str()));
+			this->num.push_back(atoi(temp_str.substr(i - 4, 4).c_str()));
 	}
 }
 
@@ -241,25 +241,25 @@ BigInteger& BigInteger::operator*=(const BigInteger& other) {
 	for (int i = 0; i < static_cast<int>(other.num.size()); ++i) {
 		sec.push_back(std::make_pair(other.num[i], 0));
 	}
-	int n = 1;
-	while (n < max(other.num.size(), this->num.size())) {
-		n *= 2;
+	int num = 1;
+	while (num < max(other.num.size(), this->num.size())) {
+		num *= 2;
 	}
-	n *= 2;
-	fir.resize(n);
-	sec.resize(n);
+	num *= 2;
+	fir.resize(num);
+	sec.resize(num);
 	fft(fir, false);
 	fft(sec, false);
 	for (int i = 0; i < static_cast<int>(fir.size()); ++i) {
-		double a = fir[i].first;
-		double b = fir[i].second;
-		double c = sec[i].first;
-		double d = sec[i].second;
-		fir[i].first = a * c - b * d;
-		fir[i].second = a * d + b * c;
+		double complex_real_fir = fir[i].first;
+		double complex_img_fir = fir[i].second;
+		double complex_real_sec = sec[i].first;
+		double complex_img_sec = sec[i].second;
+		fir[i].first = complex_real_fir * complex_real_sec - complex_img_fir * complex_img_sec;
+		fir[i].second = complex_real_fir * complex_img_sec + complex_img_fir * complex_real_sec;
 	}
 	fft(fir, true);
-	this->num.resize(n);
+	this->num.resize(num);
 	int carry = 0;
 	for (int i = 0; i < static_cast<int>(fir.size()); ++i) {
 		this->num[i] = (static_cast<long long>(fir[i].first + 0.5) + carry) % base;
@@ -503,29 +503,29 @@ BigInteger::operator char() {
 	if (this->sign == -1) {
 		temp *= -1;
 	}
-	char a = temp;
-	return a;
+	char ch_temp = temp;
+	return ch_temp;
 }
 
 std::string BigInteger::toString() const {
-	std::string s;
+	std::string str;
 	if (abs(*this) == 0) {
-		s.push_back('0');
-		return s;
+		str.push_back('0');
+		return str;
 	}
 	if (this->sign == -1) {
 		char a = '-';
-		s.push_back(a);
+		str.push_back(a);
 	}
-	s += std::to_string(num[num.size() - 1]);
+	str += std::to_string(num[num.size() - 1]);
 	for (int i = 1; i < static_cast<int>(this->num.size()); i++) {
 		std::string tmp = std::to_string(num[num.size() - 1 - i]);
 		for (int j = 0; j < static_cast<int>(4 - tmp.size()); ++j) {
-			s += "0";
+			str += "0";
 		}
-		s += std::to_string(num[num.size() - 1 - i]);
+		str += std::to_string(num[num.size() - 1 - i]);
 	}
-	return s;
+	return str;
 }
 
 BigInteger BigInteger::operator-() const {
@@ -548,91 +548,91 @@ void BigInteger::set_sign(int sign) {
 }
 
 std::istream& operator >> (std::istream& in, BigInteger& temp) {
-	std::string s;
-	in >> s;
-	BigInteger temp1 = BigInteger(s);
+	std::string str;
+	in >> str;
+	BigInteger temp1 = BigInteger(str);
 	temp = temp1;
 	return in;
 }
 
 std::ostream& operator << (std::ostream& out, const BigInteger& temp) {
-	std::string s = temp.toString();
-	out << s;
+	std::string str = temp.toString();
+	out << str;
 	return out;
 }
 
-void fft(std::vector<std::pair<double, double>>& v, bool inv) {
-	if (v.size() == 1) { return; }
+void fft(std::vector<std::pair<double, double>>& vect, bool inv) {
+	if (vect.size() == 1) { return; }
 	const double PI = 3.14159265359;
 	std::vector<std::pair<double, double>> temp1;
 	std::vector<std::pair<double, double>> temp2;
-	for (int i = 0, j = 0; i < static_cast<int>(v.size() / 2); ++i, j += 2) {
-		temp1.push_back(v[j]);
-		temp2.push_back(v[j + 1]);
+	for (int i = 0, j = 0; i < static_cast<int>(vect.size() / 2); ++i, j += 2) {
+		temp1.push_back(vect[j]);
+		temp2.push_back(vect[j + 1]);
 	}
 	fft(temp1, inv);
 	fft(temp2, inv);
 	double temp;
-	if (inv) { temp = 2 * PI * (-1) / v.size(); }
-	else { temp = 2 * PI / v.size(); }
+	if (inv) { temp = 2 * PI * (-1) / vect.size(); }
+	else { temp = 2 * PI / vect.size(); }
 	std::pair<double, double> w;
 	w.first = 1;
 	w.second = 0;
 	std::pair<double, double> wn;
 	wn.first = cos(temp);
 	wn.second = sin(temp);
-	for (int i = 0; i < static_cast<int>(v.size() / 2); ++i) {
-		double a = w.first;
-		double b = w.second;
-		double c = temp2[i].first;
-		double d = temp2[i].second;
-		temp2[i].first = c * a - d * b;
-		temp2[i].second = c * b + d * a;
-		v[i].first = temp1[i].first + temp2[i].first;
-		v[i].second = temp1[i].second + temp2[i].second;
-		v[i + v.size() / 2].first = temp1[i].first - temp2[i].first;
-		v[i + v.size() / 2].second = temp1[i].second - temp2[i].second;
+	for (int i = 0; i < static_cast<int>(vect.size() / 2); ++i) {
+		double complex_real_w = w.first;
+		double complex_img_w = w.second;
+		double complex_real_temp2 = temp2[i].first;
+		double complex_img_temp2 = temp2[i].second;
+		temp2[i].first = complex_real_temp2 * complex_real_w - complex_img_temp2 * complex_img_w;
+		temp2[i].second = complex_real_temp2 * complex_img_w + complex_img_temp2 * complex_real_w;
+		vect[i].first = temp1[i].first + temp2[i].first;
+		vect[i].second = temp1[i].second + temp2[i].second;
+		vect[i + vect.size() / 2].first = temp1[i].first - temp2[i].first;
+		vect[i + vect.size() / 2].second = temp1[i].second - temp2[i].second;
 		if (inv) {
-			v[i].first /= 2;
-			v[i].second /= 2;
-			v[i + v.size() / 2].first /= 2;
-			v[i + v.size() / 2].second /= 2;
+			vect[i].first /= 2;
+			vect[i].second /= 2;
+			vect[i + vect.size() / 2].first /= 2;
+			vect[i + vect.size() / 2].second /= 2;
 		}
-		c = wn.first;
-		d = wn.second;
-		w.first = a * c - b * d;
-		w.second = a * d + b * c;
+		complex_real_temp2 = wn.first;
+		complex_img_temp2 = wn.second;
+		w.first = complex_real_w * complex_real_temp2 - complex_img_w * complex_img_temp2;
+		w.second = complex_real_w * complex_img_temp2 + complex_img_w * complex_real_temp2;
 	}
 }
 
 BigInteger operator+(const BigInteger& other1, const BigInteger& other2) {
-	BigInteger a = other1;
-	a += other2;
-	return a;
+	BigInteger temp = other1;
+	temp += other2;
+	return temp;
 }
 
 BigInteger operator-(const BigInteger& other1, const BigInteger& other2) {
-	BigInteger a = other1;
-	a -= other2;
-	return a;
+	BigInteger temp = other1;
+	temp -= other2;
+	return temp;
 }
 
 BigInteger operator*(const BigInteger& other1, const BigInteger& other2) {
-	BigInteger a = other1;
-	a *= other2;
-	return a;
+	BigInteger temp = other1;
+	temp *= other2;
+	return temp;
 }
 
 BigInteger operator/(const BigInteger& other1, const BigInteger& other2) {
-	BigInteger a = other1;
-	a /= other2;
-	return a;
+	BigInteger temp = other1;
+	temp /= other2;
+	return temp;
 }
 
 BigInteger operator % (const BigInteger& other1, const BigInteger& other2) {
-	BigInteger a = other1;
-	a %= other2;
-	return a;
+	BigInteger temp = other1;
+	temp %= other2;
+	return temp;
 }
 
 bool operator!=(const BigInteger& other1, const BigInteger& other2) {
@@ -809,31 +809,31 @@ bool Rational::operator==(const Rational& other) const {
 }
 
 Rational operator+(const Rational& other1, const Rational& other2) {
-	Rational a;
-	a = other1;
-	a += other2;
-	return a;
+	Rational temp;
+	temp = other1;
+	temp += other2;
+	return temp;
 }
 
 Rational operator-(const Rational& other1, const Rational& other2) {
-	Rational a;
-	a = other1;
-	a -= other2;
-	return a;
+	Rational temp;
+	temp = other1;
+	temp -= other2;
+	return temp;
 }
 
 Rational operator*(const Rational& other1, const Rational& other2) {
-	Rational a;
-	a = other1;
-	a *= other2;
-	return a;
+	Rational temp;
+	temp = other1;
+	temp *= other2;
+	return temp;
 }
 
 Rational operator/(const Rational& other1, const Rational& other2) {
-	Rational a;
-	a = other1;
-	a /= other2;
-	return a;
+	Rational temp;
+	temp = other1;
+	temp /= other2;
+	return temp;
 }
 
 bool operator!=(const Rational& other1, const Rational& other2) {
@@ -853,52 +853,52 @@ bool operator>=(const Rational& other1, const Rational& other2) {
 }
 
 BigInteger Arh(BigInteger& other1, BigInteger& other2) {
-	BigInteger a = other1 >= 0 ? other1 : -other1;
-	BigInteger b = other2 >= 0 ? other2 : -other2;
-	while (a != 0 && b != 0) {
-		a > b ? a %= b : b %= a;
+	BigInteger temp1 = other1 >= 0 ? other1 : -other1;
+	BigInteger temp2 = other2 >= 0 ? other2 : -other2;
+	while (temp1 != 0 && temp2 != 0) {
+		temp1 > temp2 ? temp1 %= temp2 : temp2 %= temp1;
 	}
-	return a + b;
+	return temp1 + temp2;
 }
 
 std::string Rational::toString() const {
-	std::string s;
+	std::string str;
 	if (abs(this->num) == 0) {
-		s.push_back('0');
-		return s;
+		str.push_back('0');
+		return str;
 	}
-	s += this->num.toString();
+	str += this->num.toString();
 	if (this->den != 1) {
-		s.push_back('/');
-		s += this->den.toString();
+		str.push_back('/');
+		str += this->den.toString();
 	}
-	return s;
+	return str;
 }
 
 std::string Rational::asDecimal(size_t precision) {
-	std::string s;
+	std::string str;
 	if (this->num / this->den == 0 && this->num.get_sign() == -1) {
-		s.push_back('-');
+		str.push_back('-');
 	}
-	s += (this->num / this->den).toString();
+	str += (this->num / this->den).toString();
 	if (precision > 0) {
-		s.push_back('.');
+		str.push_back('.');
 	}
 	BigInteger temp = abs(this->num) % this->den;
 	while (precision > 1) {
 		temp *= 10;
-		s.push_back(static_cast<char>(static_cast<int>(temp / this->den) + 48));
+		str.push_back(static_cast<char>(static_cast<int>(temp / this->den) + 48));
 		temp %= this->den;
 		precision--;
 	}
 	temp *= 10;
 	if (static_cast<int>(temp / this->den) >= 5) {
-		s.push_back(static_cast<char>(static_cast<int>(temp / this->den) + 1 + 48));
+		str.push_back(static_cast<char>(static_cast<int>(temp / this->den) + 1 + 48));
 	}
 	else {
-		s.push_back(static_cast<char>(static_cast<int>(temp / this->den) + 48));
+		str.push_back(static_cast<char>(static_cast<int>(temp / this->den) + 48));
 	}
-	return s;
+	return str;
 }
 
 Rational::operator double() {
