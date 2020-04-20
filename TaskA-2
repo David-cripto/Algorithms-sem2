@@ -1,0 +1,47 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <set>
+
+using std::vector;
+using std::cin;
+using std::cout;
+using std::min;
+using std::set;
+using std::pair;
+using std::make_pair;
+const int infinity = 1000000000;
+const int self = 0;
+const int use = 1, not_use = 0;
+
+int Dijkstra(int M, int x, int y, int a, int b) {
+	vector<int> distance(M, infinity);
+	distance[x] = 0;
+	set<pair<int, int> > heap;
+	heap.insert(make_pair(distance[x], x));
+	while (!heap.empty()) {
+		int temp_vertex = heap.begin()->second;
+		heap.erase(heap.begin());
+		int vertex_for_a = (temp_vertex + 1) % M;
+		int vertex_for_b = (static_cast<long long>(pow(temp_vertex, 2)) + 1) % M;
+		if (distance[vertex_for_a] > distance[temp_vertex] + a) {
+			heap.erase(make_pair(distance[vertex_for_a], vertex_for_a));
+			distance[vertex_for_a] = distance[temp_vertex] + a;
+			heap.insert(make_pair(distance[vertex_for_a], vertex_for_a));
+		}
+		if (distance[vertex_for_b] > distance[temp_vertex] + b) {
+			heap.erase(make_pair(distance[vertex_for_b], vertex_for_b));
+			distance[vertex_for_b] = distance[temp_vertex] + b;
+			heap.insert(make_pair(distance[vertex_for_b], vertex_for_b));
+		}
+	}
+	return distance[y];
+}
+
+int main() {
+	int a, b, M, x, y;
+	cin >> a >> b >> M >> x >> y;
+	cout << Dijkstra(M, x, y, a, b);
+	return 0;
+}
