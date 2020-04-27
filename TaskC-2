@@ -1,14 +1,16 @@
-#include <iostream>
-#include <vector>
+#include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <set>
+#include <vector>
 
-using std::vector;
 using std::cin;
 using std::cout;
-using std::set;
-using std::pair;
 using std::make_pair;
+using std::min;
+using std::pair;
+using std::set;
+using std::vector;
 
 const int infinity = 1;
 const int self = 0;
@@ -18,7 +20,7 @@ private:
 	vector<vector<double> > graph;
 public:
 	Graph(int university_count);
-	friend void set_distance(Graph& gr, int M);
+	friend void setDistance(Graph& gr, int M);
 	friend double Dijkstra(Graph& gr, int S, int F);
 };
 
@@ -26,7 +28,7 @@ int main() {
 	int N, M, S, F;
 	cin >> N >> M >> S >> F;
 	Graph gr(N);
-	set_distance(gr, M);
+	setDistance(gr, M);
 	printf("%.6lg\n", Dijkstra(gr, S, F));
 	return 0;
 }
@@ -40,7 +42,7 @@ Graph::Graph(int university_count) {
 	}
 }
 
-void set_distance(Graph& gr, int M) {
+void setDistance(Graph& gr, int M) {
 	for (int i = 0; i < M; ++i) {
 		int S_i, F_i, P_i;
 		cin >> S_i >> F_i >> P_i;
