@@ -1,16 +1,16 @@
-#include <iostream>
-#include <vector>
+#include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <set>
-#include <string>
+#include <vector>
 
-using std::vector;
 using std::cin;
 using std::cout;
-using std::set;
-using std::pair;
 using std::make_pair;
-using std::string;
+using std::min;
+using std::pair;
+using std::set;
+using std::vector;
 
 const int infinity = 1;
 const int self = 0;
@@ -26,7 +26,7 @@ void input(vector<vector<pair<int, pair<double, double>>>>& graph, int M) {
 	}
 }
 
-bool ford_belman(vector<vector<pair<int, pair<double, double>>>>& graph, int S, double V, int N, int M) {
+bool fordBelman(vector<vector<pair<int, pair<double, double>>>>& graph, int S, double V, int N, int M) {
 	vector<double> d(N, 0);
 	d[S] = V;
 	int x;
@@ -54,7 +54,7 @@ int main() {
 	cin >> N >> M >> S >> V;
 	vector<vector<pair<int, pair<double, double>>>> graph(N + 1);
 	input(graph, M);
-	if (ford_belman(graph, S, V, N + 1, M)) {
+	if (fordBelman(graph, S, V, N + 1, M)) {
 		cout << "YES";
 	}
 	else {
