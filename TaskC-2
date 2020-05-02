@@ -1,0 +1,75 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::min;
+using std::pair;
+using std::set;
+using std::vector;
+
+const int infinity = 1;
+const int self = 0;
+
+class Graph {
+private:
+	vector<vector<double> > graph;
+public:
+	Graph(int university_count);
+	friend void setDistance(Graph& gr, int M);
+	friend double Dijkstra(Graph& gr, int S, int F);
+};
+
+int main() {
+	int N, M, S, F;
+	cin >> N >> M >> S >> F;
+	Graph gr(N);
+	setDistance(gr, M);
+	printf("%.6lg\n", Dijkstra(gr, S, F));
+	return 0;
+}
+
+
+Graph::Graph(int university_count) {
+	for (int i = 0; i <= university_count; ++i) {
+		vector<double> temp(university_count + 1, infinity);
+		this->graph.push_back(temp);
+		this->graph[i][i] = self;
+	}
+}
+
+void setDistance(Graph& gr, int M) {
+	for (int i = 0; i < M; ++i) {
+		int S_i, F_i, P_i;
+		cin >> S_i >> F_i >> P_i;
+		gr.graph[S_i][F_i] = static_cast<double>(P_i) / 100;
+		gr.graph[F_i][S_i] = static_cast<double>(P_i) / 100;
+	}
+}
+
+double Dijkstra(Graph& gr, int S, int F) {
+	vector<double > distance(gr.graph.size(), infinity);
+	distance[S] = self;
+	set<pair<double, int> > heap;
+	heap.insert(make_pair(distance[S], S));
+	while (!heap.empty()) {
+		int temp_vertex = heap.begin()->second;
+		heap.erase(make_pair(distance[temp_vertex], temp_vertex));
+		for (int i = 0; i < gr.graph[temp_vertex].size(); ++i) {
+			if (gr.graph[temp_vertex][i] == infinity) {
+				continue;
+			}
+			double new_distance = distance[temp_vertex] + gr.graph[temp_vertex][i] - distance[temp_vertex] * gr.graph[temp_vertex][i];
+			if (distance[i] > new_distance) {
+				heap.erase(make_pair(distance[i], i));
+				distance[i] = new_distance;
+				heap.insert(make_pair(distance[i], i));
+			}
+		}
+	}
+	return distance[F];
+}
