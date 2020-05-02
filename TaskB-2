@@ -1,0 +1,78 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::min;
+using std::pair;
+using std::set;
+using std::vector;
+
+const long long infinity = 2000000000;
+const long long self = 0;
+
+class Graph {
+private:
+
+public:
+	Graph(long long university_count);
+	vector<vector<long long> > graph;
+	friend void setDistance(Graph& gr, long long M);
+	friend long long Dijkstra(Graph& gr, long long S, long long F, long long K);
+};
+
+int main() {
+	long long N, M, K, S, F;
+	cin >> N >> M >> K >> S >> F;
+	Graph gr(N);
+	setDistance(gr, M);
+	cout << Dijkstra(gr, S, F, K);
+	return 0;
+}
+
+Graph::Graph(long long university_count) {
+	for (long long i = 0; i <= university_count; ++i) {
+		vector<long long > temp(university_count + 1, infinity);
+		this->graph.push_back(temp);
+		this->graph[i][i] = self;
+	}
+}
+
+void setDistance(Graph& gr, long long M) {
+	for (long long i = 0; i < M; ++i) {
+		long long S_i, F_i, P_i;
+		cin >> S_i >> F_i >> P_i;
+		if (gr.graph[S_i][F_i] > P_i) {
+			gr.graph[S_i][F_i] = P_i;
+		}
+	}
+}
+
+long long Dijkstra(Graph& gr, long long S, long long F, long long K) {
+	vector<pair<long long, long long> > distance(gr.graph.size(), make_pair(infinity, self));
+	distance[S] = make_pair(self, self);
+	set<pair<long long, long long> > heap;
+	heap.insert(make_pair(distance[S].first, S));
+	while (!heap.empty()) {
+		long long temp_vertex = heap.begin()->second;
+		heap.erase(heap.begin());
+		for (long long i = 0; i < gr.graph[temp_vertex].size(); ++i) {
+			if (gr.graph[temp_vertex][i] == infinity) {
+				continue;
+			}
+			long long new_value = distance[temp_vertex].first + gr.graph[temp_vertex][i];
+			long long new_edge_count = distance[temp_vertex].second + 1;
+			if (distance[i].first > new_value || (distance[i].first == new_value && distance[i].second > new_edge_count)) {
+				heap.erase(make_pair(distance[i].first, i));
+				distance[i].first = new_value;
+				distance[i].second = new_edge_count;
+				heap.insert(make_pair(distance[i].first, i));
+			}
+		}
+	}
+	return distance[F].second <= K && distance[F].first != infinity ? distance[F].first : -1;
+}
