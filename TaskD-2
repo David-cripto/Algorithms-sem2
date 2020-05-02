@@ -1,0 +1,70 @@
+#include <algorithm>
+#include <bitset>
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::bitset;
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::min;
+using std::pair;
+using std::set;
+using std::string;
+using std::vector;
+
+const int infinity = 1;
+const int self = 0;
+const int bit_len = 1000;
+
+void input(vector<vector<bitset<bit_len> >>& graph, int N);
+void transitiveClousure(vector<vector<bitset<bit_len> >>& graph, int N);
+
+int main() {
+	int N;
+	cin >> N;
+	vector<vector<bitset<bit_len>> >graph(N);
+	input(graph, N);
+	transitiveClousure(graph, N);
+	for (int i = 0; i < N; ++i) {
+		for (int j = 0; j < N; ++j) {
+			cout << graph[i][0][j];
+		}
+		cout << std::endl;
+	}
+	return 0;
+}
+
+void input(vector<vector<bitset<bit_len> >>& graph, int N) {
+	string str;
+	for (int i = 0; i < N; ++i) {
+		cin >> str;
+		string temp_str;
+		int k = 0;
+		while (k < str.size()) {
+			if (temp_str.size() == bit_len) {
+				bitset<bit_len> bits(temp_str);
+				graph[i].push_back(bits);
+				temp_str.clear();
+			}
+			temp_str.push_back(str[str.size() - 1 - k]);
+			++k;
+		}
+		bitset<bit_len> bits(temp_str);
+		graph[i].push_back(bits);
+	}
+}
+
+void transitiveClousure(vector<vector<bitset<bit_len> >>& graph, int N) {
+	for (int k = 0; k < N; ++k) {
+		for (int i = 0; i < N; ++i) {
+			if (graph[i][0][k]) {
+				for (int j = 0; j < graph[i].size(); ++j) {
+					graph[i][j] |= graph[k][j];
+				}
+			}
+		}
+	}
+}
