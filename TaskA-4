@@ -1,0 +1,68 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <vector>
+
+class R2Q {
+public:
+    R2Q(const std::vector<int>& sequence) : _sequence(sequence), _n(sequence.size()), _sparseTable((int)(ceil(log2(_n))), std::vector<std::pair<int*, int*>>(_n, std::pair<int*, int*>(0, 0))) {
+        for (int i = 0; i < _n + 1; i++) {
+            _log2.push_back((int)ceil(log2(i)));
+        }
+        for (int i = 0; i < _n; i++) {
+            _sparseTable[0][i].first = &_sequence[i];
+            _sparseTable[0][i].second = &_sequence[i];
+        }
+        for (int i = 1; i < _sparseTable.size(); i++) {
+            for (int j = 0; j < _n - (1 << i) + 1; j++) {
+                std::pair<int*, int*> mp = getMinPair(_sparseTable[i - 1][j], _sparseTable[i - 1][j + (1 << (i - 1))]);
+                _sparseTable[i][j].first = mp.first;
+                _sparseTable[i][j].second = mp.second;
+            }
+        }
+    }
+    int minimal(int a, int b) {
+        int k = _log2[b - a + 1] - 1;
+        return *getMinPair(_sparseTable[k][a], _sparseTable[k][b - (1 << k) + 1]).second;
+    }
+private:
+    std::pair<int*, int*> getMinPair(std::pair<int*, int*> a, std::pair<int*, int*> b) {
+        std::pair<int*, int*> ans;
+        std::vector<int*> order{ a.first, a.second, b.first, b.second };
+        std::sort(order.begin(), order.end(), [](int* l, int* r) {return *l < *r; });
+        ans.first = order[0];
+        for (int i = 1; i < 4; i++) {
+            if (order[i] != order[0]) {
+                ans.second = order[i];
+                break;
+            }
+        }
+        return ans;
+    }
+    std::vector<int> _sequence;
+    int _n;
+    std::vector<int> _log2;
+    std::vector<std::vector<std::pair<int*, int*>>> _sparseTable;
+};
+
+void getAns(int n, int m) {
+    std::vector<int> sequence(n);
+    for (int i = 0; i < n; i++) {
+        int x;
+        std::cin >> x;
+        sequence[i] = x;
+    }
+    R2Q r2q(sequence);
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        std::cin >> a >> b;
+        std::cout << r2q.minimal(a - 1, b - 1) << std::endl;
+    }
+}
+
+int main() {
+    int n, m;
+    std::cin >> n >> m;
+    getAns(n, m);
+    return 0;
+}
