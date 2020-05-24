@@ -1,0 +1,60 @@
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::pair;
+using std::set;
+using std::vector;
+
+const int INF = 1000000000;
+
+int prim(vector<vector<pair<int, int>>>& graph, int n) {
+	vector<int> min_e(n, INF), sel_e(n, -1);
+	min_e[0] = 0;
+	set < pair<int, int> > q;
+	q.insert(make_pair(0, 0));
+	vector<int>vertexes(n);
+	vector<int> is_used(n, 0);
+	vertexes[0] = 0;
+	for (int i = 0; i < n; ++i) {
+		int v = q.begin()->second;
+		vertexes[v] = q.begin()->first;
+		is_used[v] = 1;
+		q.erase(q.begin());
+		for (int j = 0; j < graph[v].size(); ++j) {
+			int to = graph[v][j].first, cost = graph[v][j].second;
+			if (to == v || is_used[to] == 1) {
+				continue;
+			}
+			if (cost < min_e[to]) {
+				q.erase(make_pair(min_e[to], to));
+				min_e[to] = cost;
+				sel_e[to] = v;
+				q.insert(make_pair(min_e[to], to));
+			}
+		}
+	}
+	int ans = 0;
+	for (int i = 0; i < vertexes.size(); ++i) {
+		ans += vertexes[i];
+	}
+	return ans;
+}
+
+int main() {
+	int n, m;
+	cin >> n >> m;
+	vector<vector<pair<int, int>>>graph(n);
+	for (int i = 0; i < m; ++i) {
+		int b, e, w;
+		cin >> b >> e >> w;
+		graph[b - 1].push_back(make_pair(e - 1, w));
+		graph[e - 1].push_back(make_pair(b - 1, w));
+	}
+	cout << prim(graph, n);
+	return 0;
+}
