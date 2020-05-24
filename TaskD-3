@@ -1,0 +1,84 @@
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::pair;
+using std::set;
+using std::vector;
+
+bool kuhn(int v, vector<bool>& used, vector<int>& mt, vector<vector<int>>& graph) {
+	if (used[v]) {
+		return false;
+	}
+	used[v] = true;
+	for (int i = 0; i < graph[v].size(); ++i) {
+		int to = graph[v][i];
+		if (mt[to] == -1 || kuhn(mt[to], used, mt, graph)) {
+			mt[to] = v;
+			return true;
+		}
+	}
+	return false;
+}
+
+void getAns(int a, int b, int n, int m) {
+	if (2 * b <= a) {
+		int ans = 0;
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < m; ++j) {
+				char temp;
+				cin >> temp;
+				if (temp == '*') {
+					ans++;
+				}
+			}
+		}
+		cout << ans * b;
+	}
+	else {
+		vector<pair<int, int>> vertex;
+		int all = 0;
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < m; ++j) {
+				char temp;
+				cin >> temp;
+				if (temp == '*') {
+					vertex.push_back(make_pair(i, j));
+					++all;
+				}
+			}
+		}
+		vector<vector<int>>graph(vertex.size());
+		for (int i = 0; i < vertex.size(); ++i) {
+			for (int j = 0; j < vertex.size(); ++j) {
+				if (((vertex[i].second == vertex[j].second) && (vertex[i].first - 1 == vertex[j].first)) || ((vertex[i].first == vertex[j].first) && (vertex[i].second - 1 == vertex[j].second))) {
+					graph[i].push_back(j);
+					graph[j].push_back(i);
+				}
+			}
+		}
+		vector<int>mt(vertex.size(), -1);
+		for (int i = 0; i < vertex.size(); ++i) {
+			vector<bool>used(vertex.size(), false);
+			kuhn(i, used, mt, graph);
+		}
+		int ans = 0;
+		for (int i = 0; i < vertex.size(); ++i) {
+			if (mt[i] == -1) {
+				ans++;
+			}
+		}
+		cout << (all - ans) * a / 2 + ans * b;
+	}
+}
+
+int main() {
+	int n, m, a, b;
+	cin >> n >> m >> a >> b;
+	getAns(a, b, n, m);
+	return 0;
+}
