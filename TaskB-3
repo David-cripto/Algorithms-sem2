@@ -1,0 +1,50 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::sort;
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::pair;
+using std::set;
+using std::vector;
+
+int kruskal(vector<pair<int, pair<int, int>>>& graph, int n, int m) {
+	int cost = 0;
+	sort(graph.begin(), graph.end());
+	vector<int> tree_id(n);
+	for (int i = 0; i < n; ++i) {
+		tree_id[i] = i;
+	}
+	for (int i = 0; i < m; ++i)
+	{
+		int vertex_from = graph[i].second.first, vertex_to = graph[i].second.second, weight = graph[i].first;
+		if (tree_id[vertex_from] != tree_id[vertex_to])
+		{
+			cost += weight;
+			int old_id = tree_id[vertex_to], new_id = tree_id[vertex_from];
+			for (int j = 0; j < n; ++j) {
+				if (tree_id[j] == old_id) {
+					tree_id[j] = new_id;
+				}
+			}
+		}
+	}
+	return cost;
+}
+
+int main() {
+	int n, m;
+	cin >> n >> m;
+	vector<pair<int, pair<int, int>>>graph;
+	for (int i = 0; i < m; ++i) {
+		int b, e, w;
+		cin >> b >> e >> w;
+		graph.push_back(make_pair(w, make_pair(b - 1, e - 1)));
+	}
+	cout << kruskal(graph, n, m);
+	return 0;
+}
