@@ -1,0 +1,120 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::max;
+using std::min;
+using std::pair;
+using std::set;
+using std::vector;
+
+const int INF = 10000000;
+
+void build(vector<int>& r, vector<int>& g, vector<int>& b, vector<pair<int, int>>& t, int v, int tl, int tr) {
+	if (tl == tr) {
+		t[v] = make_pair(r[tl] + g[tl] + b[tl], 0);
+	}
+	else {
+		int tm = (tl + tr) / 2;
+		build(r, g, b, t, v * 2, tl, tm);
+		build(r, g, b, t, v * 2 + 1, tm + 1, tr);
+		t[v] = make_pair(min(t[v * 2].first, t[v * 2 + 1].first), 0);
+	}
+}
+
+int minimal(vector<pair<int, int>>& t, int v, int tl, int tr, int l, int r) {
+	if (t[v].second != 0) {
+		t[v].first = t[v].second;
+		if (v * 2 + 1 < t.size()) {
+			t[v * 2].second = t[v].second;
+			t[v * 2 + 1].second = t[v].second;
+		}
+		t[v].second = 0;
+	}
+	if (l > r) {
+		return INF;
+	}
+	if (l == tl && r == tr) {
+		return t[v].first;
+	}
+	int tm = (tl + tr) / 2;
+	return min(minimal(t, v * 2, tl, tm, l, min(r, tm)), minimal(t, v * 2 + 1, tm + 1, tr, max(l, tm + 1), r));
+}
+
+void update(vector<pair<int, int>>& t, int v, int tl, int tr, int l, int r, int add) {
+	if (t[v].second != 0) {
+		t[v].first = t[v].second;
+		if (v * 2 + 1 < t.size()) {
+			t[v * 2].second = t[v].second;
+			t[v * 2 + 1].second = t[v].second;
+		}
+		t[v].second = 0;
+	}
+	if (l > r) {
+		return;
+	}
+	if (l == tl && tr == r) {
+		t[v].first = add;
+		if (2 * v + 1 < t.size()) {
+			t[2 * v].second = add;
+			t[2 * v + 1].second = add;
+		}
+		return;
+	}
+	int tm = (tl + tr) / 2;
+	if (l <= tm) {
+		update(t, v * 2, tl, tm, l, min(r, tm), add);
+	}
+	if (r > tm) {
+		update(t, v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, add);
+	}
+	if (2 * v + 1 < t.size()) {
+		if (t[2 * v].second == 0 && t[2 * v + 1].second == 0) {
+			t[v].first = min(t[2 * v].first, t[2 * v + 1].first);
+		}
+		else if (t[2 * v].second != 0 && t[2 * v + 1].second == 0) {
+			t[v].first = min(t[2 * v].second, t[2 * v + 1].first);
+		}
+		else if (t[2 * v].second == 0 && t[2 * v + 1].second != 0) {
+			t[v].first = min(t[2 * v].first, t[2 * v + 1].second);
+		}
+		else {
+			t[v].first = min(t[2 * v].second, t[2 * v + 1].second);
+		}
+	}
+}
+
+void getAns(int n) {
+	int k;
+	vector<int> r;
+	vector<int> g;
+	vector<int> b;
+	for (int i = 0; i < n; ++i) {
+		int c1, c2, c3;
+		cin >> c1 >> c2 >> c3;
+		r.push_back(c1);
+		g.push_back(c2);
+		b.push_back(c3);
+	}
+	vector<pair<int, int>> t(4 * n);
+	build(r, g, b, t, 1, 0, n - 1);
+	cin >> k;
+	for (int i = 0; i < k; ++i) {
+		int c, d, red, green, blue, e, f;
+		cin >> c >> d >> red >> green >> blue >> e >> f;
+		update(t, 1, 0, n - 1, c, d, red + green + blue);
+		cout << minimal(t, 1, 0, n - 1, e, f) << std::endl;
+	}
+}
+
+int main() {
+	int n;
+	cin >> n;
+	getAns(n);
+	return 0;
+}
