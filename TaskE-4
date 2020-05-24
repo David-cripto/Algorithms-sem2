@@ -1,0 +1,175 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::pair;
+using std::string;
+using std::vector;
+
+class Node {
+public:
+    Node(const string& value);
+    void fix();
+    int tree_size;
+    int priority;
+    string value;
+    Node* left;
+    Node* right;
+};
+
+class Tree {
+public:
+    Tree();
+    ~Tree();
+    void insert(int position, const string& value);
+    void remove(int position);
+    void clear();
+    string get(int position) const;
+private:
+    Node* root;
+    pair<Node*, Node*> split(Node* node, int position);
+    Node* merge(Node* node1, Node* node2);
+    void clear(Node* node);
+};
+
+Tree::Tree() : root(nullptr) {
+
+}
+
+Tree::~Tree() {
+    clear();
+}
+
+void Tree::clear() {
+    clear(root);
+    root = nullptr;
+}
+
+void Tree::clear(Node* node) {
+    if (node == nullptr) {
+        return;
+    }
+    clear(node->left);
+    clear(node->right);
+    delete node;
+}
+
+void Tree::insert(int position, const string& value) {
+    Node* current = new Node(value);
+    pair<Node*, Node*> ans = split(root, position);
+    Node* right = merge(current, ans.second);
+    root = merge(ans.first, right);
+}
+
+void Tree::remove(int position) {
+    pair<Node*, Node*> ans1 = split(root, position);
+    pair<Node*, Node*> ans2 = split(ans1.second, 1);
+    delete ans2.first;
+    root = merge(ans1.first, ans2.second);
+}
+
+string Tree::get(int position) const {
+    int l;
+    Node* node = root;
+    while (true) {
+        l = (node->left != nullptr) ? (node->left->tree_size) : 0;
+        if (l == position) {
+            break;
+        }
+        if (position < l) {
+            node = node->left;
+        }
+        else {
+            position -= l + 1;
+            node = node->right;
+        }
+    }
+    return node->value;
+}
+
+pair<Node*, Node*> Tree::split(Node* node, int position) {
+    if (node == nullptr) {
+        return pair<Node*, Node*>(nullptr, nullptr);
+    }
+    int l = (node->left != nullptr) ? (node->left->tree_size) : 0;
+    if (l >= position) {
+        pair<Node*, Node*> ans = split(node->left, position);
+        node->left = ans.second;
+        node->fix();
+        return make_pair(ans.first, node);
+    }
+    else {
+        pair<Node*, Node*> ans = split(node->right, position - l - 1);
+        node->right = ans.first;
+        node->fix();
+        return make_pair(node, ans.second);
+    }
+}
+
+Node* Tree::merge(Node* node1, Node* node2) {
+    if (node2 == nullptr) {
+        return node1;
+    }
+    if (node1 == nullptr) {
+        return node2;
+    }
+    if (node1->priority > node2->priority) {
+        node1->right = merge(node1->right, node2);
+        node1->fix();
+        return node1;
+    }
+    else {
+        node2->left = merge(node1, node2->left);
+        node2->fix();
+        return node2;
+    }
+}
+
+Node::Node(const string& value) : value(value), priority(rand()), left(nullptr), right(nullptr), tree_size(1) {
+
+}
+
+void Node::fix() {
+    tree_size = 1;
+    if (left != nullptr) {
+        tree_size += left->tree_size;
+    }
+    if (right != nullptr) {
+        tree_size += right->tree_size;
+    }
+}
+
+void getAns(int n) {
+    int position;
+    Tree string_array;
+    for (int i = 0; i < n; i++) {
+        char cmd;
+        cin >> cmd;
+        if (cmd == '+') {
+            string val;
+            cin >> position >> val;
+            string_array.insert(position, val);
+        }
+        else if (cmd == '?') {
+            cin >> position;
+            cout << string_array.get(position) << '\n';
+        }
+        else if (cmd == '-') {
+            int l, r;
+            cin >> l >> r;
+            for (int i = l; i <= r; ++i) {
+                string_array.remove(i);
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+    getAns(n);
+    return 0;
+}
