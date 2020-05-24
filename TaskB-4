@@ -1,0 +1,110 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <set>
+#include <vector>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::max;
+using std::min;
+using std::pair;
+using std::set;
+using std::vector;
+
+const int INF = 10000000;
+
+void build(vector<int>& a, vector<pair<int, int>>& t, int v, int tl, int tr) {
+	if (tl == tr) {
+		t[v] = make_pair(a[tl], 0);
+	}
+	else {
+		int tm = (tl + tr) / 2;
+		build(a, t, v * 2, tl, tm);
+		build(a, t, v * 2 + 1, tm + 1, tr);
+		t[v] = make_pair(max(t[v * 2].first, t[v * 2 + 1].first), 0);
+	}
+}
+
+int maximal(vector<pair<int, int>>& t, int v, int tl, int tr, int l, int r) {
+	if (t[v].second != 0) {
+		t[v].first += t[v].second;
+		if (v * 2 + 1 < t.size()) {
+			t[v * 2].second += t[v].second;
+			t[v * 2 + 1].second += t[v].second;
+		}
+		t[v].second = 0;
+	}
+	if (l > r) {
+		return 0;
+	}
+	if (l == tl && r == tr) {
+		return t[v].first;
+	}
+	int tm = (tl + tr) / 2;
+	return max(maximal(t, v * 2, tl, tm, l, min(r, tm)), maximal(t, v * 2 + 1, tm + 1, tr, max(l, tm + 1), r));
+}
+
+void update(vector<pair<int, int>>& t, int v, int tl, int tr, int l, int r, int add) {
+	if (t[v].second != 0) {
+		t[v].first += t[v].second;
+		if (v * 2 + 1 < t.size()) {
+			t[v * 2].second += t[v].second;
+			t[v * 2 + 1].second += t[v].second;
+		}
+		t[v].second = 0;
+	}
+	if (l > r) {
+		return;
+	}
+	if (l == tl && tr == r) {
+		t[v].first += add;
+		if (2 * v + 1 < t.size()) {
+			t[2 * v].second += add;
+			t[2 * v + 1].second += add;
+		}
+		return;
+	}
+	int tm = (tl + tr) / 2;
+	if (l <= tm) {
+		update(t, v * 2, tl, tm, l, min(r, tm), add);
+	}
+	if (r > tm) {
+		update(t, v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, add);
+	}
+	if (2 * v + 1 < t.size()) {
+		t[v].first = max(t[2 * v].first, t[2 * v + 1].first);
+	}
+}
+
+void getAns(int n) {
+	int m, cap;
+	vector<int> a;
+	for (int i = 0; i < n - 1; ++i) {
+		int temp;
+		cin >> temp;
+		a.push_back(temp);
+	}
+	a.push_back(0);
+	cin >> cap >> m;
+	vector<pair<int, int>> t(4 * n);
+	build(a, t, 1, 0, n - 1);
+	for (int i = 0; i < m; ++i) {
+		int f, s, th;
+		cin >> f >> s >> th;
+		if (maximal(t, 1, 0, n - 1, f, s - 1) + th <= cap) {
+			update(t, 1, 0, n - 1, f, s - 1, th);
+		}
+		else {
+			cout << i << " ";
+		}
+	}
+}
+
+int main() {
+	int n;
+	cin >> n;
+	getAns(n);
+	return 0;
+}
