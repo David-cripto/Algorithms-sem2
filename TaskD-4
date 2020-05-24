@@ -1,0 +1,122 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using std::cin;
+using std::cout;
+using std::make_pair;
+using std::pair;
+using std::vector;
+
+class LCA {
+public:
+    LCA(vector<vector<long long>>& parents);
+    long long operator()(long long a, long long b);
+    long long operator()(pair<long long, long long> query);
+private:
+    void DFS(long long node, long long parent);
+    bool isAncestor(long long a, long long b);
+    long long timer;
+    long long n;
+    long long l;
+    vector<vector<long long>>& tree;
+    vector<long long> tin;
+    vector<long long> tout;
+    vector<vector<long long>> ancestors;
+};
+
+class NextQuery {
+public:
+    NextQuery(long long a0, long long b0, long long x, long long y, long long z, long long n);
+    pair<long long, long long> operator()(long long result);
+private:
+    long long a;
+    long long b;
+    long long xq;
+    long long yq;
+    long long zq;
+    long long nq;
+};
+
+LCA::LCA(vector<vector<long long>>& parents) : tree(parents), n(parents.size()), l((long long)(ceil(log2(n)))), tin(n), tout(n), ancestors(n, vector<long long>(l + 1)), timer(0) {
+    DFS(0, 0);
+}
+
+long long LCA::operator()(long long a, long long b) {
+    if (isAncestor(a, b)) {
+        return a;
+    }
+    if (isAncestor(b, a)) {
+        return b;
+    }
+    for (int i = l; i >= 0; --i) {
+        if (!isAncestor(ancestors[a][i], b)) {
+            a = ancestors[a][i];
+        }
+    }
+    return ancestors[a][0];
+}
+
+long long LCA::operator()(pair<long long, long long> query) {
+    return LCA::operator()(query.first, query.second);
+}
+
+void LCA::DFS(long long node, long long parent) {
+    tin[node] = timer++;
+    ancestors[node][0] = parent;
+    for (int i = 1; i <= l; i++) {
+        ancestors[node][i] = ancestors[ancestors[node][i - 1]][i - 1];
+    }
+    for (long long i = 0; i < tree[node].size(); ++i) {
+        long long to = tree[node][i];
+        if (to != parent)
+            DFS(to, node);
+    }
+    tout[node] = timer++;
+}
+
+bool LCA::isAncestor(long long a, long long b) {
+    return tin[a] <= tin[b] && tout[b] <= tout[a];
+}
+
+NextQuery::NextQuery(long long a0, long long b0, long long x, long long y, long long z, long long n) : a(a0), b(b0), xq(x), yq(y), zq(z), nq(n) {
+
+}
+
+pair<long long, long long> NextQuery::operator()(long long result) {
+    pair<long long, long long> ans((a + result) % nq, b);
+    a = (a * xq + b * yq + zq) % nq;
+    b = (b * xq + a * yq + zq) % nq;
+    return ans;
+}
+
+void getAns(long long n, long long m) {
+    vector<vector<long long>> parents(n);
+    for (long long i = 1; i < n; i++) {
+        long long x;
+        cin >> x;
+        parents[x].push_back(i);
+    }
+    long long a0 = 0;
+    long long b0 = 0;
+    cin >> a0 >> b0;
+    long long x, y, z;
+    cin >> x >> y >> z;
+    NextQuery nextQuery(a0, b0, x, y, z, n);
+    LCA lca(parents);
+    long long ans;
+    long long result;
+    for (long long i = 0; i < m; i++) {
+        result = lca(nextQuery(result));
+        ans += result;
+    }
+    cout << ans;
+}
+
+int main() {
+    long long n;
+    long long m;
+    cin >> n >> m;
+    getAns(n, m);
+    return 0;
+}
