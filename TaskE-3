@@ -12,17 +12,16 @@ using std::set;
 using std::stack;
 using std::vector;
 
-const int INF = 100000000000;
+const int INF = 10000000000;
 
-void dfs(int s, int t, vector<int>& path, vector<vector<pair<int, pair<int, int>>>>& graph, vector<int>& used) {
+void dfs(int s, int t, vector<int>& path, vector<vector<pair<int, pair<int, int>>>>& graph) {
     if (s == t) {
         return;
     }
     for (int i = 0; i < graph[s].size(); ++i) {
-        if (!used[graph[s][i].first] && graph[s][i].second.second > 0) {
+        if (graph[s][i].second.second > 0) {
             path[graph[s][i].first] = s;
-            used[graph[s][i].first] = true;
-            dfs(graph[s][i].first, t, path, graph, used);
+            dfs(graph[s][i].first, t, path, graph);
             return;
         }
     }
@@ -38,7 +37,7 @@ int findPath(int source, int target, vector<int>& flow, vector<int>& prev, vecto
         q.pop();
         for (int i = 0; i < graph[cur_vertex].size(); i++) {
             int vertex = graph[cur_vertex][i].first;
-            if (graph[cur_vertex][i].second.first > 0 && flow[vertex] == 0) {
+            if (graph[cur_vertex][i].second.first  > 0 && flow[vertex] == 0) {
                 q.push(vertex);
                 prev[vertex] = cur_vertex;
                 flow[vertex] = graph[cur_vertex][i].second.first;
@@ -102,16 +101,20 @@ void maxFlow(int source, int target, int n, vector<vector<pair<int, pair<int, in
     } while (add_flow > 0 && max_flow < 2);
     if (max_flow >= 2) {
         cout << "YES" << std::endl;
-        vector<int> used(n, 0);
         for (int i = 0; i < 2; ++i) {
-            used[target] = false;
             vector<int> ans;
             vector<int> path(n, -1);
             ans.push_back(target);
-            dfs(source, target, path, graph, used);
+            dfs(source, target, path, graph);
             int j = target;
             while (j != source) {
                 int v = path[j];
+                for (int i = 0; i < graph[path[j]].size(); ++i) {
+                    if (graph[v][i].first == j) {
+                        --graph[v][i].second.second;
+                        break;
+                    }
+                }
                 ans.push_back(v);
                 j = v;
             }
@@ -130,7 +133,7 @@ void maxFlow(int source, int target, int n, vector<vector<pair<int, pair<int, in
 int main() {
     int n, m, s, t;
     cin >> n >> m >> s >> t;
-    vector<vector<pair<int, pair<int, int>>>> graph(n);
+    vector<vector<pair<int,pair<int,int>>>> graph(n);
     for (int i = 0; i < m; ++i) {
         int x, y;
         cin >> x >> y;
