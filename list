@@ -1,0 +1,710 @@
+template<typename T>
+
+class List {
+private:
+    struct Node {
+        mutable Node* next = nullptr;
+        mutable Node* prev = nullptr;
+        T data;
+
+        template<class... Args>
+        Node(const Node* prev_, const Node* next_, Args&&... args) :
+            next(const_cast<Node*>(next_)),
+            prev(const_cast<Node*>(prev_)),
+            data(std::forward<Args>(args)...) {}
+
+        Node(const T& data_, const Node* prev_ = nullptr, const Node* next_ = nullptr)
+            : next(const_cast<Node*>(next_)),
+            prev(const_cast<Node*>(prev_)),
+            data(data_) {}
+
+        Node(T&& data_, const Node* prev_ = nullptr, const Node* next_ = nullptr) :
+            next(const_cast<Node*>(next_)),
+            prev(const_cast<Node*>(prev_)),
+            data(std::move(data_)) {}
+    };
+
+    struct border {
+        mutable Node* next = nullptr;
+        mutable Node* prev = nullptr;
+
+    };
+
+    size_t length;
+    Node* head;
+    Node* tail;
+    Node* end_;
+public:
+
+    using value_type = T;
+
+    struct iterator;
+    using const_iterator = const iterator;
+
+    struct iterator {
+        friend List;
+
+        using reference = T&;
+        using pointer = T*;
+        using value_type = T;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = size_t;
+
+        iterator() = default;
+
+        iterator(const iterator& temp);
+
+        iterator(iterator&& temp);
+
+        iterator& operator=(const iterator& temp);
+
+        iterator& operator=(iterator&& temp);
+
+        const T& operator*() const { return ptr->data; }
+
+        T& operator*() { return ptr->data; }
+
+        const T* operator->() const { return &ptr->data; }
+
+        T* operator->() { return &ptr->data; }
+
+        const iterator& operator++() const;
+
+        const iterator operator++(int) const;
+
+        const iterator operator--(int) const;
+
+        const iterator& operator--() const;
+
+        iterator& operator++();
+
+        const iterator operator++(int);
+
+        iterator& operator--();
+
+        const iterator operator--(int);
+
+        bool operator==(const iterator& temp) const;
+
+        bool operator!=(const iterator& temp) const;
+
+        //operator const_iterator() const;
+
+    private:
+        mutable Node* ptr = nullptr;
+    };
+
+    List();
+
+    List(size_t count, const T& value = T());
+
+    List(const List& temp);
+
+    List(List&& temp);
+
+    ~List();
+
+    List& operator=(const List& temp);
+
+    List& operator=(List&& temp);
+
+    size_t size();
+
+    T& front() const;
+
+    T& back() const;
+
+    void clear();
+
+    bool empty();
+
+    iterator begin() const;
+
+    iterator end() const;
+
+    const_iterator cbegin() const;
+
+    const_iterator cend() const;
+
+    void push_back(const T& temp);
+
+    void push_back(T&& temp);
+
+    void pop_back();
+
+    void push_front(const T& temp);
+
+    void push_front(T&& temp);
+
+    void pop_front();
+
+    iterator insert(const_iterator it, const T& temp);
+
+    iterator insert(const_iterator it, T&& temp);
+
+    iterator insert(const_iterator it, const_iterator first, const_iterator last);
+
+    template<class... Args>
+    iterator emplace(const_iterator it, Args&&... args);
+
+    template<class... Args>
+    iterator emplace_back(Args&&... args);
+
+    template<class... Args>
+    iterator emplace_front(Args&&... args);
+
+    iterator erase(iterator iter);
+
+    iterator erase(iterator start, iterator finish);
+
+    void reverse();
+
+    void unique();
+};
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+
+template<typename T>
+inline List<T>::List() {
+    head = nullptr;
+    tail = nullptr;
+    length = 0;
+    //end_ = new Node(T());//***************************************************************************************
+    end_ = reinterpret_cast<Node*>(new border);
+}
+
+template<typename T>
+inline List<T>::List(size_t count, const T& value) {
+    length = count;
+    Node* p1 = nullptr;
+    head = new Node(value);
+    count--;
+    Node* p2 = head;
+    while (count) {
+        p1 = p2;
+        p2 = p2->next;
+        p2 = new Node(value, p1);
+        p1->next = p2;
+        count--;
+    }
+    tail = p2;
+    //end_ = new Node(T(), tail);
+    end_ = reinterpret_cast<Node*>(new border);
+    tail->next = end_;
+    end_->prev = tail;
+}
+
+template<typename T>
+inline List<T>::List(const List& temp) {
+    Node* p2 = temp.head;
+    Node* th_p1 = nullptr;
+    Node* th_p2 = new Node(p2->data);
+    head = th_p2;
+    while (p2 != temp.end_) {
+        p2 = p2->next;
+        if (p2 == temp.end_) {
+            break;
+        }
+        th_p1 = th_p2;
+        th_p2 = th_p2->next;
+        th_p2 = new Node(p2->data);
+        th_p1->next = th_p2;
+        th_p2->prev = th_p1;
+    }
+    tail = th_p2;
+    end_ = reinterpret_cast<Node*>(new border);
+    end_->prev = tail;
+    tail->next = end_;
+    length = temp.length;
+}
+
+template<typename T>
+inline List<T>::List(List&& temp) {
+    length = temp.length;
+    head = temp.head;
+    tail = temp.tail;
+    end_ = reinterpret_cast<Node*>(new border);
+    if (tail != nullptr) {
+        tail->next = end_;
+    }
+    end_->prev = tail;
+    temp.head = nullptr;
+    temp.tail = nullptr;
+    temp.end_->prev = nullptr;
+    temp.length = 0;
+}
+
+template<typename T>
+inline List<T>::~List() {
+    Node* p1 = nullptr;
+    Node* p2 = head;
+    while (p2 != nullptr) {
+        delete p1;
+        p1 = p2;
+        p2 = p2->next;
+    }
+    tail = nullptr;
+    end_ = nullptr;
+    length = 0;
+}
+
+template<typename T>
+inline List<T>& List<T>::operator=(const List& temp) {
+    this->clear();
+    Node* p2 = temp.head;
+    Node* th_p1 = nullptr;
+    Node* th_p2 = new Node(p2->data);
+    head = th_p2;
+    while (p2 != temp.end_) {
+        p2 = p2->next;
+        if (p2 == temp.end_) {
+            break;
+        }
+        th_p1 = th_p2;
+        th_p2 = th_p2->next;
+        th_p2 = new Node(p2->data);
+        th_p1->next = th_p2;
+        th_p2->prev = th_p1;
+    }
+    tail = th_p2;
+    tail->next = end_;
+    end_->prev = tail;
+    length = temp.length;
+    return *this;
+}
+
+template<typename T>
+inline List<T>& List<T>::operator=(List&& temp) {
+    this->clear();
+    length = temp.length;
+    this->head = temp.head;
+    this->tail = temp.tail;
+    this->end_ = temp.end_;
+    if (tail != nullptr) {
+        tail->next = end_;
+    }
+    end_->prev = tail;
+    temp.head = nullptr;
+    temp.tail = nullptr;
+    temp.length = 0;
+    temp.end_ = nullptr;
+    return *this;
+}
+
+template<typename T>
+inline size_t List<T>::size() {
+    return length;
+}
+
+template<typename T>
+inline T& List<T>::front() const {
+    return head->data;
+}
+
+template<typename T>
+inline T& List<T>::back() const {
+    return tail->data;
+}
+
+template<typename T>
+inline void List<T>::clear() {
+    Node* p1 = nullptr;
+    Node* p2 = this->head;
+    while (p2 != end_ && p2 != nullptr) {
+        p1 = p2;
+        p2 = p2->next;
+        delete p1;
+    }
+    head = nullptr, tail = nullptr;
+    length = 0;
+}
+
+template<typename T>
+inline bool List<T>::empty() {
+    return !length;
+}
+
+template<typename T>
+inline typename List<T>::iterator List<T>::begin() const {
+    iterator temp;
+    if (length) {
+        temp.ptr = head;
+    }
+    else {
+        temp.ptr = end_;
+    }
+    return temp;
+}
+
+template<typename T>
+inline typename List<T>::iterator List<T>::end() const {
+    iterator temp;
+    temp.ptr = end_;
+    return temp;
+}
+
+template<typename T>
+inline typename List<T>::const_iterator List<T>::cbegin() const {
+    iterator temp;
+    if (length) {
+        temp.ptr = head;
+    }
+    else {
+        temp.ptr = end_;
+    }
+    return temp;
+}
+
+template<typename T>
+inline typename List<T>::const_iterator List<T>::cend() const {
+    iterator temp;
+    temp.ptr = end_;
+    return temp;
+}
+
+template<typename T>
+inline void List<T>::push_back(const T& temp) {
+    Node* t = new Node(temp);//*************************************************************
+    if (length) {
+        tail->next = t;
+        t->prev = tail;
+        tail = t;
+    }
+    else {
+        head = tail = t;
+    }
+    //****************************************************
+    tail->next = end_;
+    end_->prev = tail;
+    ++length;
+}
+
+template<typename T>
+inline void List<T>::push_back(T&& temp) {
+    Node* t = new Node(std::move(temp));//*************************************************************
+    if (length) {
+        tail->next = t;
+        t->prev = tail;
+        tail = t;
+    }
+    else {
+        head = tail = t;
+    }
+    //****************************************************
+    tail->next = end_;
+    end_->prev = tail;
+    ++length;
+}
+
+template<typename T>
+inline void List<T>::pop_back() {
+    if (!length) {
+        return;
+    }
+    Node* temp = tail;
+    tail = tail->prev;
+    if (tail != nullptr) {
+        tail->next = end_;
+        end_->prev = tail;
+    }
+    else {
+        head = nullptr;
+    }
+    length--;
+    delete temp;
+}
+
+template<typename T>
+inline void List<T>::push_front(const T& temp) {
+    Node* t = new Node(temp, nullptr, head);
+    if (length) {
+        head->prev = t;
+        head = t;
+    }
+    else {
+        head = tail = t;
+        tail->next = end_;
+        end_->prev = tail;
+    }
+    length++;
+}
+
+template<typename T>
+inline void List<T>::push_front(T&& temp) {
+    Node* t = new Node(std::move(temp), nullptr, head);
+    if (length) {
+        head->prev = t;
+        head = t;
+    }
+    else {
+        head = tail = t;
+        tail->next = end_;
+        end_->prev = tail;
+    }
+    length++;
+}
+
+template<typename T>
+inline void List<T>::pop_front() {
+    Node* temp = head;
+    if (length) {
+        head = head->next;
+        delete temp;
+    }
+    else {
+        return;
+    }
+    length--;
+}
+
+template<typename T>
+inline typename List<T>::iterator List<T>::insert(const_iterator it, const T& temp) {
+    Node* t = new Node(temp, it.ptr->prev, it.ptr);
+    if (it.ptr->prev != nullptr) {
+        it.ptr->prev->next = t;
+    }
+    it.ptr->prev = t;
+    if (it.ptr == head) {
+        head = t;
+    }
+    else if (it.ptr == end_) {
+        tail = t;
+    }
+    iterator to_ret;
+    to_ret.ptr = t;
+    length++;
+    return to_ret;
+}
+
+template<typename T>
+inline typename List<T>::iterator List<T>::insert(const_iterator it, T&& temp) {
+    Node* t = new Node(std::move(temp), it.ptr->prev, it.ptr);
+    if (it.ptr->prev != nullptr) {
+        it.ptr->prev->next = t;
+    }
+    it.ptr->prev = t;
+    if (it.ptr == head) {
+        head = t;
+    }
+    else if (it.ptr == end_) {
+        tail = t;
+    }
+    iterator to_ret;
+    to_ret.ptr = t;
+    length++;
+    return to_ret;
+}
+
+//
+template<typename T>
+inline typename List<T>::iterator List<T>::insert(const_iterator it, const_iterator first, const_iterator last) {
+    iterator to_ret;
+    while (first != last) {
+        to_ret = insert(it, *first);
+        ++first;
+    }
+    return to_ret;
+}
+//
+
+template<typename T>
+inline typename List<T>::iterator List<T>::erase(iterator iter) {
+    if (iter.ptr == end_) {
+        iter.ptr = iter.ptr->prev;
+    }
+    if (iter.ptr != head) {
+        iter.ptr->prev->next = iter.ptr->next;
+    }
+    iter.ptr->next->prev = iter.ptr->prev;
+    iterator to_return;
+    to_return.ptr = iter.ptr->next;
+    if (iter.ptr == head) {
+        head = to_return.ptr;
+    }
+    else if (iter.ptr == tail) {
+        tail = iter.ptr->prev;
+    }
+    iter.ptr->next = iter.ptr->prev = nullptr;
+    length--;
+    delete iter.ptr;
+    return to_return;
+}
+
+template<typename T>
+inline typename List<T>::iterator List<T>::erase(iterator start, iterator finish) {
+    iterator temp;
+    while (start.ptr != finish.ptr) {
+        iterator t = start;
+        start++;
+        temp = erase(t);
+    }
+    return temp;
+}
+
+template<typename T>
+inline void List<T>::reverse() {
+    Node* p1 = nullptr;
+    tail = head;
+    Node* p2 = head;
+    Node* p3 = head->next;
+    while (p2 != end_) {
+        p2->next = p1;
+        p2->prev = p3;
+        p1 = p2;
+        p2 = p3;
+        p3 = p3->next;
+    }
+    head = p1;
+    tail->next = end_;
+    head->prev = nullptr;
+}
+
+template<typename T>
+inline void List<T>::unique() {
+    iterator p1;
+    iterator p2;
+    p2.ptr = head;
+    while (p2.ptr != end_) {
+        p1 = p2;
+        p2++;
+        if (p1.ptr->data == p2.ptr->data) {
+            this->erase(p1);
+        }
+        p1.ptr = p2.ptr->prev;
+    }
+}
+
+template<typename T>
+inline List<T>::iterator::iterator(const iterator& temp) :
+    ptr(temp.ptr) {}
+
+template<typename T>
+inline List<T>::iterator::iterator(iterator&& temp) :
+    ptr(temp.ptr) {
+    temp.ptr = nullptr;
+}
+
+template<typename T>
+inline typename List<T>::iterator& List<T>::iterator::operator=(const iterator& temp) {
+    if (*this != temp) {
+        ptr = temp.ptr;
+    }
+    return *this;
+}
+
+template<typename T>
+inline typename List<T>::iterator& List<T>::iterator::operator=(iterator&& temp) {
+    if (*this != temp) {
+        ptr = temp.ptr;
+        temp.ptr = nullptr;
+    }
+    return *this;
+}
+
+template<typename T>
+inline typename List<T>::iterator& List<T>::iterator::operator++() {
+    ptr = ptr->next;
+    return *this;
+}
+
+template<typename T>
+inline const typename List<T>::iterator List<T>::iterator::operator++(int) const {
+    iterator temp = *this;
+    ptr = ptr->next;
+    return temp;
+}
+
+template<typename T>
+inline const typename List<T>::iterator& List<T>::iterator::operator--() const {
+    ptr = ptr->prev;
+    return *this;
+}
+
+template<typename T>
+inline const typename List<T>::iterator List<T>::iterator::operator--(int) const {
+    iterator temp = *this;
+    ptr = ptr->prev;
+    return temp;
+}
+
+template<typename T>
+inline bool List<T>::iterator::operator==(const iterator& temp) const {
+    return ptr == temp.ptr;
+}
+
+template<typename T>
+inline bool List<T>::iterator::operator!=(const iterator& temp) const {
+    return ptr != temp.ptr;
+}
+
+template<typename T>
+const typename List<T>::iterator& List<T>::iterator::operator++() const {
+    ptr = ptr->next;
+    return *this;
+}
+
+//template<typename T>
+//inline const typename List<T>::iterator List<T>::iterator::operator--(int) const {
+//    iterator temp = *this;
+//    ptr = ptr->prev;
+//    return temp;
+//}
+
+template<typename T>
+inline const typename List<T>::iterator List<T>::iterator::operator++(int) {
+    iterator temp = *this;
+    ptr = ptr->next;
+    return temp;
+}
+
+template<typename T>
+inline const typename List<T>::iterator List<T>::iterator::operator--(int) {
+    iterator temp = *this;
+    ptr = ptr->prev;
+    return temp;
+}
+
+template<typename T>
+inline typename List<T>::iterator& List<T>::iterator::operator--() {
+    ptr = ptr->prev;
+    return *this;
+}
+
+
+template<typename T>
+template<class ...Args>
+inline typename List<T>::iterator List<T>::emplace(const_iterator it, Args&&...args) {
+    Node* t = new Node(it.ptr->prev, it.ptr, std::forward<Args>(args)...);
+    if (it.ptr->prev != nullptr) {
+        it.ptr->prev->next = t;
+    }
+    it.ptr->prev = t;
+    if (!length) {
+        tail = head = t;
+    }
+    else if (it.ptr == head) {
+        head = t;
+    }
+    else if (it.ptr == end_) {
+        tail = t;
+    }
+    length++;
+    iterator to_ret;
+    to_ret.ptr = t;
+    return to_ret;
+}
+
+template<typename T>
+template<class ...Args>
+inline typename List<T>::iterator List<T>::emplace_back(Args&&...args) {
+    const_iterator temp = this->cend();
+    return emplace(temp, std::forward<Args>(args)...);
+}
+
+template<typename T>
+template<class ...Args>
+inline typename List<T>::iterator List<T>::emplace_front(Args&&...args) {
+    const_iterator temp = this->cbegin();
+    return emplace(temp, std::forward<Args>(args)...);
+}
